@@ -25,9 +25,23 @@ class Monitor():
         self.ncarNorth = Value('i', 0)
         self.ncarSouth = Value('i', 0)
         
+        self.nped_waiting = Value('i', 0)
+        self.ncarNorth_waiting = Value('i', 0)
+        self.ncarSouth_waiting = Value('i', 0)
+        
         self.north_car = Condition(self.mutex)
         self.south_car = Condition(self.mutex)
         self.ped = Condition(self.mutex)
+        
+        self.turn = Value('i', -1)
+        '''
+        turn:
+            -1: no hay elementos esperando
+            0: el turno lo tienen los peatones
+            1: el turno lo tienen os coches del norte
+            2: el turno lo tienen los coches del sur
+        '''
+        
 
     def are_no_car_north(self):
         return self.ncarNorth.value == 0
@@ -39,13 +53,19 @@ class Monitor():
         return self.nped.value == 0
     
     def pass_ped(self):
-        return self.are_no_car_north() and self.are_no_car_south()
+        return (self.are_no_car_north() and self.are_no_car_south()) and \
+            ((self.ncarNorth_waiting.value <= 5 and self.ncarSouth_waiting.value <= 5) or \
+             self.turn.value == 0) or self.turn.value == -1        
     
     def pass_north(self):
-        return self.are_no_pedestrian() and self.are_no_car_south()
+        return self.are_no_pedestrian() and self.are_no_car_south() and \
+            ((self.ncarSouth_waiting.value <= 5 and self.nped_waiting.value <= 5) or \
+             self.turn.value == 1) or self.turn.value == -1      
     
     def pass_south(self):
-        return self.are_no_pedestrian() and self.are_no_car_north()
+        return self.are_no_pedestrian() and self.are_no_car_north() and \
+            ((self.ncarNorth_waiting.value <= 5 and self.nped_waiting.value <= 5) or \
+             self.turn.value == 2) or self.turn.value == -1
     
 
     def wants_enter_car(self, direction: int) -> None:
@@ -53,10 +73,20 @@ class Monitor():
         self.patata.value += 1
         
         if direction == NORTH:
+            self.ncarNorth_waiting.value +=1
             self.north_car.wait_for(self.pass_north)
+            self.ncarNorth_waiting.value -=1
+        
+            if self.turn.value == -1:
+                self.turn.value = 1
             self.ncarNorth.value += 1
         else:
+            self.ncarSouth_waiting.value +=1
             self.south_car.wait_for(self.pass_south)
+            self.ncarSouth_waiting.value -=1
+        
+            if self.turn.value == -1:
+                self.turn.value = 2
             self.ncarSouth.value += 1
         
         self.mutex.release()
@@ -67,12 +97,37 @@ class Monitor():
         
         if direction == NORTH:
             self.ncarNorth.value -= 1
+            
+            if self.turn.value == 1:
+                
+                if self.ncarSouth_waiting != 0:
+                    self.turn.value = 2
+                
+                elif self.nped_waiting != 0:
+                    self.turn.value = 0
+                
+                else:
+                    self.turn.value = -1
+                    
+            
             # Notificamos a los demás en caso de que no hayan coches norte:
             if self.ncarNorth.value == 0:
                 self.south_car.notify_all()
                 self.ped.notify_all()                    
         else:
             self.ncarSouth.value -= 1
+            
+            if self.turn.value == 2:
+                
+                if self.nped_waiting.value != 0:
+                    self.turn.value = 0
+                
+                elif self.ncarNorth_waiting.value != 0:
+                    self.turn.value = 1
+                
+                else:
+                    self.turn.value = -1
+            
             if self.ncarSouth.value == 0:
                 self.north_car.notify_all()
                 self.ped.notify_all()  
@@ -84,7 +139,13 @@ class Monitor():
         self.mutex.acquire()
         self.patata.value += 1
         
+        self.nped_waiting.value += 1
         self.ped.wait_for(self.pass_ped)
+        self.nped_waiting.value -= 1
+        
+        if self.turn.value == -1:
+            self.turn.value = 0
+            
         self.nped.value += 1
         
         self.mutex.release()
@@ -94,6 +155,19 @@ class Monitor():
         self.patata.value += 1
         
         self.nped.value -= 1
+        
+        
+        if self.turn.value == 0:
+            
+            if self.ncarNorth_waiting.value != 0:
+                self.turn.value = 1
+            
+            elif self.ncarSouth_waiting.value != 0:
+                self.turn.value = 2
+            
+            else:
+                self.turn.value = -1
+        
         if self.nped.value == 0:
             self.north_car.notify_all()
             self.south_car.notify_all() 
