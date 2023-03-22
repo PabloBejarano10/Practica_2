@@ -54,18 +54,18 @@ class Monitor():
     
     def pass_ped(self):
         return (self.are_no_car_north() and self.are_no_car_south()) and \
-            ((self.ncarNorth_waiting.value <= 5 and self.ncarSouth_waiting.value <= 5) or \
-             self.turn.value == 0) or self.turn.value == -1        
+            (((self.ncarNorth_waiting.value <= 5 and self.ncarSouth_waiting.value <= 5) or \
+             self.turn.value == 0) or self.turn.value == -1)
     
     def pass_north(self):
         return self.are_no_pedestrian() and self.are_no_car_south() and \
-            ((self.ncarSouth_waiting.value <= 5 and self.nped_waiting.value <= 5) or \
-             self.turn.value == 1) or self.turn.value == -1      
+            (((self.ncarSouth_waiting.value <= 5 and self.nped_waiting.value <= 5) or \
+             self.turn.value == 1) or self.turn.value == -1)      
     
     def pass_south(self):
         return self.are_no_pedestrian() and self.are_no_car_north() and \
-            ((self.ncarNorth_waiting.value <= 5 and self.nped_waiting.value <= 5) or \
-             self.turn.value == 2) or self.turn.value == -1
+            (((self.ncarNorth_waiting.value <= 5 and self.nped_waiting.value <= 5) or \
+             self.turn.value == 2) or self.turn.value == -1)
     
 
     def wants_enter_car(self, direction: int) -> None:
