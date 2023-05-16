@@ -1,7 +1,7 @@
 # Practica_2
 Repositorio para la practica 2 de Programación Paralela (PRPA)
 
-En este repositorio se encuentran los dos documentos pedidos en la practica 2 de la asignatura PRPA
+En este repositorio se encuentran los dos documentos pedidos en la practica 2 de la asignatura PRPA, además del pdf con la explicación de dicho codigo.
 
 El documento Version_sin_solucionar_inanicion.py es en el cual se soluciona el peroblema propiuesto del puente, pero siendo posible que un peaton o un tipo de coche pase indefinidamente, dejando a los demás sin pasar (inanición).
 
